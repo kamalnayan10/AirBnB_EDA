@@ -16,7 +16,12 @@ import pingouin as pg
 import numpy as np
 import statsmodels.api as sm
 
-# --- Initialize session state for filters and map ---
+
+
+# ------------------------------------------- Initialize session state for filters and map -------------------------------------------
+
+
+
 if "filters_changed" not in st.session_state:
     st.session_state.filters_changed = True # Initially true to build the map
 if "cached_map" not in st.session_state:
@@ -30,7 +35,12 @@ if "prev_filters" not in st.session_state:
         "heatmap_option": "None" # Added for heatmap selection
     }
 
-# --- Load and Preprocess Data ---
+
+
+# ------------------------------------------- Load and Preprocess Data -------------------------------------------
+
+
+
 @st.cache_data
 def load_and_preprocess_data():
     try:
@@ -80,7 +90,12 @@ def load_and_preprocess_data():
 
 df = load_and_preprocess_data()
 
-# --- Sidebar Filters ---
+
+
+# ------------------------------------------- Sidebar Filters -------------------------------------------
+
+
+
 st.sidebar.header("Filter Listings")
 current_filters = {}
 current_filters["borough"] = st.sidebar.selectbox("Select Borough", ["All"] + sorted(df['neighbourhood_group'].unique()), key="sb_borough")
@@ -95,7 +110,12 @@ if default_price_low > default_price_high: default_price_low, default_price_high
 current_filters["price_range"] = st.sidebar.slider("Price Range ($)", min_value=min_price_data, max_value=max_price_data, value=(default_price_low, default_price_high), key="sl_price_range")
 current_filters["min_avail"] = st.sidebar.slider("Minimum Availability (days)", 0, 365, 30, key="sl_min_avail")
 
-# --- NEW: Heatmap selection for the map ---
+
+
+# ------------------------------------------- NEW: Heatmap selection for the map -------------------------------------------
+
+
+
 current_filters["heatmap_option"] = st.sidebar.selectbox(
     "Select Heatmap Layer",
     ["None", "Price Heatmap", "Listing Density Heatmap"],
@@ -106,7 +126,12 @@ if st.session_state.prev_filters != current_filters:
     st.session_state.filters_changed = True
     st.session_state.prev_filters = current_filters.copy()
 
-# --- Apply filters to the DataFrame ---
+
+
+# ------------------------------------------- Apply filters to the DataFrame -------------------------------------------
+
+
+
 filtered_df = df.copy()
 if current_filters["borough"] != "All":
     filtered_df = filtered_df[filtered_df['neighbourhood_group'] == current_filters["borough"]]
@@ -118,10 +143,17 @@ if 'availability_365' in filtered_df.columns:
     filtered_df = filtered_df[filtered_df['availability_365'] >= current_filters["min_avail"]]
 
 
-# --- Main Page Layout ---
+# ------------------------------------------- Main Page Layout -------------------------------------------
+
+
 st.title("🏙️ NYC Airbnb Strategic Insights Dashboard")
 
-# --- NEW: Key Metrics Summary Cards ---
+
+
+# ------------------------------------------- NEW: Key Metrics Summary Cards -------------------------------------------
+
+
+
 st.subheader("📈 Key Metrics (Based on Filters)")
 if not filtered_df.empty:
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
@@ -134,7 +166,13 @@ else:
 st.markdown("---")
 
 
-# --- Existing Charts Section (Price Distribution, Room Type, Borough vs Price) ---
+
+
+# ------------------------------------------- Existing Charts Section (Price Distribution, Room Type, Borough vs Price) -------------------------------------------
+
+
+
+
 st.subheader("📊 Core Data Visualizations")
 if not filtered_df.empty:
     col1, col2 = st.columns(2)
@@ -188,7 +226,11 @@ else:
 st.markdown("---")
 
 
-# --- NEW: Temporal Analysis Section ---
+
+# ------------------------------------------- NEW: Temporal Analysis Section -------------------------------------------
+
+
+
 with st.expander("📅 Temporal Analysis (Based on Last Review Date)"):
     if not filtered_df.empty and 'review_year_month' in filtered_df.columns and 'price' in filtered_df.columns:
         temporal_data = filtered_df.dropna(subset=['review_year_month', 'price'])
@@ -237,7 +279,11 @@ with st.expander("📅 Temporal Analysis (Based on Last Review Date)"):
 st.markdown("---")
 
 
-# --- NEW: Host-Centric Analysis Section ---
+
+# ------------------------------------------- NEW: Host-Centric Analysis Section -------------------------------------------
+
+
+
 with st.expander("👤 Host-Centric Analysis"):
     if not filtered_df.empty and 'calculated_host_listings_count' in filtered_df.columns and 'host_id' in filtered_df.columns:
         st.markdown("##### Distribution of Listings per Host")
@@ -290,7 +336,12 @@ with st.expander("👤 Host-Centric Analysis"):
 st.markdown("---")
 
 
-# --- NEW: Advanced Price & Availability Insights ---
+
+
+# ------------------------------------------- NEW: Advanced Price & Availability Insights -------------------------------------------
+
+
+
 with st.expander("🔑 Advanced Price & Availability Insights"):
     plot_df_sample = filtered_df.sample(min(1000, len(filtered_df))) if not filtered_df.empty else pd.DataFrame()
 
@@ -554,7 +605,12 @@ with st.expander("🔬 Statistical Analysis & Tests"):
             st.warning("Not enough data points for regression.")
 st.markdown("---")
 
-# --- Map View Section (MODIFIED for Heatmap) ---
+
+
+# ------------------------------------------- Map View Section (MODIFIED for Heatmap) -------------------------------------------
+
+
+
 st.subheader("🗺️ Listing Map & Heatmaps")
 map_key_suffix = f"{current_filters['borough']}_{current_filters['room_type']}_{current_filters['price_range'][0]}_{current_filters['price_range'][1]}_{current_filters['min_avail']}_{current_filters['heatmap_option']}"
 
@@ -636,8 +692,7 @@ if st.session_state.cached_map is None or st.session_state.filters_changed:
                             folium.Polygon(locations=poly_coords, color='blue', weight=2, fill=True, fill_opacity=0.1, tooltip=f"{current_filters['borough']} Boundary").add_to(m)
                     except Exception as e:
                         st.warning(f"Could not generate borough boundary for {current_filters['borough']}: {e}")
-                # else: # Optional: inform if not enough unique points for boundary
-                #     st.caption(f"Not enough unique data points in {current_filters['borough']} to draw a boundary after filtering.")
+                
 
 
             st.session_state.cached_map = m
@@ -673,7 +728,12 @@ else:
     st_folium(default_map, width=700, height=500, key="map_display_fallback_generic", returned_objects=[])
 st.markdown("---")
 
-# --- NEW: Interactive Data Table View ---
+
+
+# ------------------------------------------- NEW: Interactive Data Table View -------------------------------------------
+
+
+
 with st.expander("📄 View Filtered Data Table"):
     if not filtered_df.empty:
         # Display a sample, ensuring columns are mostly simple types for display
@@ -699,7 +759,13 @@ with st.expander("📄 View Filtered Data Table"):
 st.markdown("---")
 
 
-# --- Agent using Gemini Section ---
+
+
+# ------------------------------------------- Agent using Gemini Section -------------------------------------------
+
+
+
+
 st.subheader("🤖 Strategy Assistant")
 st.markdown("""
 Ask a strategic question based on the data, for example:
@@ -711,15 +777,13 @@ Ask a strategic question based on the data, for example:
 if "gemini_response" not in st.session_state:
     st.session_state.gemini_response = ""
 
-# IMPORTANT: Replace with your actual API key retrieval from st.secrets
-# gemini_api_key = st.secrets.get("GEMINI_API_KEY") # Recommended
-gemini_api_key = "AIzaSyCqZy8Ow0ZHgK3wAMK9ymwk5b82CLQyWuo" # User provided key
+gemini_api_key = st.secrets["GEMINI_API_KEY"]
 model = None
 
 if gemini_api_key:
     try:
         genai.configure(api_key=gemini_api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash") # Using a common current model
+        model = genai.GenerativeModel("gemini-1.5-flash")
         prompt_disabled = False
     except Exception as e:
         st.error(f"Failed to configure Gemini API: {e}. The Strategy Assistant may not work.")
