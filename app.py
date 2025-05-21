@@ -5,8 +5,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import folium
-from folium.plugins import HeatMap # Added for heatmap
-# from folium import Polygon # Polygon is available via folium.Polygon <-- This was in your original prompt but not used, folium.Polygon is correct way
+from folium.plugins import HeatMap
 from shapely.geometry import MultiPoint
 from streamlit_folium import st_folium
 import google.generativeai as genai
@@ -32,7 +31,7 @@ if "prev_filters" not in st.session_state:
         "room_type": None,
         "price_range": (0,0),
         "min_avail": -1,
-        "heatmap_option": "None" # Added for heatmap selection
+        "heatmap_option": "None"
     }
 
 
@@ -50,13 +49,11 @@ def load_and_preprocess_data():
                          'calculated_host_listings_count', 'minimum_nights', 'reviews_per_month', 'number_of_reviews']
         if not all(col in df_loaded.columns for col in required_cols):
             st.error(f"The CSV file is missing some required columns. Expected: {', '.join(required_cols)}. Using sample data instead.")
-            raise FileNotFoundError # Trigger fallback to sample data
+            raise FileNotFoundError
         # --- Data Preprocessing for new features ---
-        # Convert 'last_review' to datetime and extract month/year
         df_loaded['last_review_date'] = pd.to_datetime(df_loaded['last_review'], errors='coerce')
         df_loaded['review_year_month'] = df_loaded['last_review_date'].dt.to_period('M')
 
-        # Fill NaN reviews_per_month with 0 if appropriate for your analysis
         if 'reviews_per_month' in df_loaded.columns:
             df_loaded['reviews_per_month'].fillna(0, inplace=True)
 
@@ -82,7 +79,7 @@ def load_and_preprocess_data():
             'calculated_host_listings_count': [1,1,1,2,1,1,3,1,1,1,5,10] * (1000//12 +1)
         }
         df_sample = pd.DataFrame(sample_data)
-        df_sample = df_sample.iloc[:1000] # Ensure consistent length
+        df_sample = df_sample.iloc[:1000]
         df_sample['last_review_date'] = pd.to_datetime(df_sample['last_review'], errors='coerce')
         df_sample['review_year_month'] = df_sample['last_review_date'].dt.to_period('M')
         df_sample['reviews_per_month'].fillna(0, inplace=True)
@@ -180,7 +177,7 @@ if not filtered_df.empty:
         if 'price' in filtered_df.columns and filtered_df['price'].notna().any():
             st.markdown("##### Price Distribution")
             fig, ax = plt.subplots()
-            sns.histplot(filtered_df["price"].dropna(), bins=30, kde=True, ax=ax) # Added .dropna()
+            sns.histplot(filtered_df["price"].dropna(), bins=30, kde=True, ax=ax)
             plt.xlabel("Price ($)")
             plt.ylabel("Number of Listings")
             st.pyplot(fig)
@@ -376,7 +373,7 @@ with st.expander("🔑 Advanced Price & Availability Insights"):
 
         if not min_nights_data.empty and min_nights_data['minimum_nights'].max() > 0:
             st.markdown("##### Impact of Minimum Nights on Price")
-            bins = [0, 1, 2, 3, 7, 14, 30, min_nights_data['minimum_nights'].max() + 1] # Ensure max is covered
+            bins = [0, 1, 2, 3, 7, 14, 30, min_nights_data['minimum_nights'].max() + 1]
             labels = ['1', '2', '3', '4-7', '8-14', '15-30', f"31+"]
             # Adjust bins and labels if max nights is small
             if min_nights_data['minimum_nights'].max() < 30:
@@ -459,8 +456,6 @@ with st.expander("📝 Review-Based Insights"):
         st.info("Ensure 'reviews_per_month', 'price', 'availability_365' columns are present for these insights.")
 st.markdown("---")
 
-# … after your Review-Based Insights expander, insert:
-
 with st.expander("🔬 Statistical Analysis & Tests"):
     if filtered_df.empty:
         st.info("No data available for statistical testing.")
@@ -500,7 +495,7 @@ with st.expander("🔬 Statistical Analysis & Tests"):
                 st.success("Significant differences between boroughs (p < 0.05)")
                 st.markdown("**Post-hoc: Tukey HSD**")
                 tukey = pg.pairwise_tukey(data=filtered_df, dv="price", between="neighbourhood_group")
-                # Use backticks around column name with hyphen
+                
                 sig = tukey.query("`p-tukey` < 0.05")[["A", "B", "diff", "p-tukey"]].round(4)
                 if not sig.empty:
                     st.dataframe(sig)
@@ -631,7 +626,7 @@ if st.session_state.cached_map is None or st.session_state.filters_changed:
 
             m = folium.Map(location=[map_center_lat, map_center_lon], zoom_start=current_zoom, tiles="CartoDB positron")
 
-            # --- Add Heatmap Layer IF Selected ---
+            
             if current_filters["heatmap_option"] != "None" and not sample_df_map.empty:
                 heat_data = []
                 if current_filters["heatmap_option"] == "Price Heatmap" and 'price' in sample_df_map.columns:
@@ -643,7 +638,7 @@ if st.session_state.cached_map is None or st.session_state.filters_changed:
                                      for index, row in price_heat_df.iterrows()]
                         if heat_data:
                             HeatMap(heat_data, radius=15, blur=20,
-                                    # ******** CORRECTED GRADIENT KEYS TO STRINGS ********
+                                    
                                     gradient={'0.1': 'blue', '0.5': 'lime', '1.0': 'red'}
                                     ).add_to(m)
                             folium.LayerControl(collapsed=False).add_to(m)
@@ -656,8 +651,8 @@ if st.session_state.cached_map is None or st.session_state.filters_changed:
                 elif current_filters["heatmap_option"] == "Listing Density Heatmap":
                     # lat/lon already filtered for NaNs in sample_df_map
                     heat_data = [[row['latitude'], row['longitude']]
-                                 for index, row in sample_df_map.iterrows()] # No further NaN check needed here for lat/lon
-                    if heat_data: # Ensure heat_data is not empty
+                                 for index, row in sample_df_map.iterrows()]
+                    if heat_data:
                         HeatMap(heat_data, radius=10, blur=15).add_to(m)
                         folium.LayerControl(collapsed=False).add_to(m)
                     else:
@@ -665,7 +660,7 @@ if st.session_state.cached_map is None or st.session_state.filters_changed:
 
 
             # --- Add Listing Markers ---
-            if current_filters["heatmap_option"] == "None": # Only show markers if no heatmap
+            if current_filters["heatmap_option"] == "None":
                 # For markers, ensure name and price are strings, handle missing data
                 markers_df = sample_df_map.sample(min(200, len(sample_df_map))).copy()
                 markers_df['name_str'] = markers_df['name'].astype(str).fillna('N/A')
@@ -744,9 +739,9 @@ with st.expander("📄 View Filtered Data Table"):
         if 'last_review_date' in display_df.columns:
             display_df['last_review_date'] = display_df['last_review_date'].astype(str)
 
-        st.dataframe(display_df.head(min(1000, len(display_df)))) # Show head for consistency
+        st.dataframe(display_df.head(min(1000, len(display_df))))
         st.caption(f"Showing the first {min(1000, len(display_df))} of {len(filtered_df):,} filtered listings.")
-        # Provide download for the full filtered data
+       
         csv = filtered_df.to_csv(index=False).encode('utf-8')
         st.download_button(
             label="Download Full Filtered Data as CSV",
@@ -797,7 +792,7 @@ num_listings_summary = f"Number of listings matching these filters: {len(filtere
 
 user_prompt = st.text_input("Enter your question for the AI assistant:", placeholder="e.g., How can we increase listings in Queens?", disabled=prompt_disabled)
 
-if st.button("Get Suggestion", disabled=prompt_disabled or not user_prompt):
+if st.button("Get Suggestion"):
     if model and user_prompt:
         full_prompt = f"""
         You are an AI assistant for analyzing NYC Airbnb data.
